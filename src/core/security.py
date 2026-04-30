@@ -10,7 +10,7 @@ from src.dependencies.db_dependency import db_dependency
 
 from models.users import User
 
-pwd_context = CryptContext(schemes="bcrypt", deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
@@ -23,20 +23,23 @@ async def authenticate_user(db: db_dependency,
                             password: str):
     stmt = select(User).where(User.name == username)
     query_result = await db.execute(stmt)
-    user = query_result.scalar_one_or_none
+    user = query_result.scalar_one_or_none()
 
     if not user:
         return False
 
     if not verify_password(password, user.password_hash):
         return False
+    
+    return user
 
-async def create_access_token(data: dict, expires_delta: timedelta):
-    to_encode = data.copy()
+def create_access_token(sub: str, expires_delta: timedelta):
+    to_encode = {}
     
     expires = datetime.now(timezone.utc) + expires_delta
 
-    to_encode.update({"exp": expires})
+    to_encode.update({"exp": expires,
+                      "sub":sub})
 
     enconded_jwt =  jwt.encode(to_encode,
                                jwt_settings.SECRET_KEY,
@@ -44,7 +47,7 @@ async def create_access_token(data: dict, expires_delta: timedelta):
     
     return enconded_jwt
 
-async def decode_jwt(token: str):
+def decode_jwt(token: str):
     try:
         payload = jwt.decode(token,
                              jwt_settings.SECRET_KEY,
