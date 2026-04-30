@@ -5,10 +5,10 @@ from passlib.context import CryptContext
 
 from sqlalchemy import select
 
-from src.core.config import jwt_settings
+from src.core.config import env_vars
 from src.dependencies.db_dependency import db_dependency
 
-from models.users import User
+from src.models.users import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -42,16 +42,16 @@ def create_access_token(sub: str, expires_delta: timedelta):
                       "sub":sub})
 
     enconded_jwt =  jwt.encode(to_encode,
-                               jwt_settings.SECRET_KEY,
-                               jwt_settings.ALGORITHM)
+                               env_vars.SECRET_KEY,
+                               env_vars.ALGORITHM)
     
     return enconded_jwt
 
 def decode_jwt(token: str):
     try:
         payload = jwt.decode(token,
-                             jwt_settings.SECRET_KEY,
-                             algorithms=[jwt_settings.ALGORITHM])
+                             env_vars.SECRET_KEY,
+                             algorithms=[env_vars.ALGORITHM])
         return payload
     except JWTError:
       return None 
