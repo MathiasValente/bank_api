@@ -22,7 +22,7 @@ def hash_password(password: str):
 async def authenticate_user(db: db_dependency,
                             username: str,
                             password: str):
-    stmt = select(User).where(User.name == username)
+    stmt = select(User).where(User.email == username)
     query_result = await db.execute(stmt)
     user = query_result.scalar_one_or_none()
 
