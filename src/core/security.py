@@ -22,25 +22,33 @@ token_dependency = Annotated[str, Depends(oauth2_bearer)]
 
 async def get_current_user(token: token_dependency,
                            db: db_dependency):
-    payload = decode_jwt(token)
+    try:
+        payload = jwt.decode(token,
+                            env_vars.SECRET_KEY,
+                            algorithms=[env_vars.ALGORITHM])
 
-    if not payload:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Invalid/Expirated Token",
-                            headers={"WWW-Authenticate": "Bearer"})
+        if not payload:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Invalid/Expirated Token",
+                                headers={"WWW-Authenticate": "Bearer"})
+        
+        user_mail = payload.get("sub")
+
+        if not user_mail:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Invalid Token")        
+
+        stmt = select(User).where(User.email == user_mail)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="User not Found!")
+    except JWTError:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Could not validate user!")
     
-    user_id = payload.get("sub")
-
-    if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Invalid Token")        
-
-    user = await db.get(User, user_id)
-
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="User not Found!")
-
     return user
 
 user_dependency = Annotated[User, Depends(get_current_user)]
@@ -66,25 +74,16 @@ async def authenticate_user(db: db_dependency,
     
     return user
 
-def create_access_token(sub: str, expires_delta: timedelta):
+def create_access_token(sub: int, expires_delta: timedelta):
     to_encode = {}
     
     expires = datetime.now(timezone.utc) + expires_delta
 
     to_encode.update({"exp": expires,
-                      "sub":sub})
+                      "sub": sub})
 
     enconded_jwt =  jwt.encode(to_encode,
                                env_vars.SECRET_KEY,
                                env_vars.ALGORITHM)
     
     return enconded_jwt
-
-def decode_jwt(token: str):
-    try:
-        payload = jwt.decode(token,
-                             env_vars.SECRET_KEY,
-                             algorithms=[env_vars.ALGORITHM])
-        return payload
-    except JWTError:
-      return None 
