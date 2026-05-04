@@ -1,4 +1,6 @@
-from sqlalchemy import String, Integer, Float, ForeignKey
+from datetime import datetime
+
+from sqlalchemy import String, Integer, Float, ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database.db import Base
@@ -19,7 +21,7 @@ class Transaction(Base):
     amount: Mapped[float] = mapped_column(Float,
                                           nullable=False)
     
-    timestamp: Mapped[str] = mapped_column(String(255),
-                                           nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True),
+                                           server_default=func.now())
     
     account = relationship("Account", back_populates="transactions")
