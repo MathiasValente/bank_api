@@ -74,7 +74,7 @@ async def authenticate_user(db: db_dependency,
     
     return user
 
-def create_access_token(sub: int, expires_delta: timedelta):
+def create_access_token(sub: str, expires_delta: timedelta):
     to_encode = {}
     
     expires = datetime.now(timezone.utc) + expires_delta
